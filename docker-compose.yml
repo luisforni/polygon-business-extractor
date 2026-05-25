@@ -8,13 +8,9 @@ services:
     ports:
       - "3100:3100"
     environment:
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       NEXT_PUBLIC_API_URL: http://api:8300
     volumes:
-      # Hot reload: mount source, exclude node_modules
       - ./packages/frontend/src:/app/packages/frontend/src
-      - ./packages/frontend/public:/app/packages/frontend/public
     depends_on:
       api:
         condition: service_healthy
@@ -32,8 +28,8 @@ services:
     environment:
       CORS_ORIGINS: http://localhost:3100
     volumes:
-      # Hot reload: uvicorn --reload watches this
       - ./packages/extractor-api/app:/app/app
+      - searches_data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8300/health').raise_for_status()"]
       interval: 10s
@@ -41,3 +37,6 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
+
+volumes:
+  searches_data:

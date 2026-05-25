@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { SavedSearch, SearchResult } from "@/types";
-import { createClient } from "@/lib/supabase";
+import { listSearches, createSearch, deleteSearch } from "@/lib/api";
 
 interface SearchesState {
   searches: SavedSearch[];
@@ -12,7 +12,7 @@ interface SearchesState {
   removeSearch: (id: string) => Promise<void>;
 }
 
-export const useSearchesStore = create<SearchesState>((set, get) => ({
+export const useSearchesStore = create<SearchesState>((set) => ({
   searches: [],
   activeTabId: null,
   loading: false,
@@ -21,33 +21,22 @@ export const useSearchesStore = create<SearchesState>((set, get) => ({
 
   loadSearches: async () => {
     set({ loading: true });
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("searches")
-      .select("*")
-      .order("created_at", { ascending: false });
-    set({ searches: data ?? [], loading: false });
+    const searches = await listSearches();
+    set({ searches, loading: false });
   },
 
   addSearch: async (polygon, sectors, result) => {
-    const supabase = createClient();
-    const name = `Search ${new Date().toLocaleString()}`;
-    const { data, error } = await supabase
-      .from("searches")
-      .insert({ name, polygon, sectors, result })
-      .select()
-      .single();
-    if (error) throw error;
+    const name = `Búsqueda ${new Date().toLocaleString("es-AR")}`;
+    const saved = await createSearch(name, polygon, sectors, result);
     set((state) => ({
-      searches: [data, ...state.searches],
-      activeTabId: data.id,
+      searches: [saved, ...state.searches],
+      activeTabId: saved.id,
     }));
-    return data;
+    return saved;
   },
 
   removeSearch: async (id) => {
-    const supabase = createClient();
-    await supabase.from("searches").delete().eq("id", id);
+    await deleteSearch(id);
     set((state) => {
       const searches = state.searches.filter((s) => s.id !== id);
       const activeTabId =
