@@ -31,13 +31,23 @@ export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
     import("leaflet-draw").then(() => {
       if (!mounted || !containerRef.current || mapRef.current) return;
 
-      const map = L.map(containerRef.current).setView([-34.6037, -58.3816], 13);
+      const map = L.map(containerRef.current).setView([40.4821, -3.3547], 4);
       mapRef.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap contributors",
         maxZoom: 19,
       }).addTo(map);
+
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          if (!mapRef.current) return;
+          mapRef.current.setView([coords.latitude, coords.longitude], 14);
+        },
+        () => {
+          // permiso denegado o no disponible — queda la vista inicial
+        }
+      );
 
       const drawnItems = new L.FeatureGroup().addTo(map);
 
