@@ -103,14 +103,14 @@ export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
         <SectorFilter selected={selectedSectors} onChange={setSelectedSectors} />
       </div>
       {searching && (
-        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-lg px-6 py-4 shadow-xl text-sm font-medium">
+        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-black/20 dark:bg-black/40">
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-6 py-4 shadow-xl text-sm font-medium text-gray-900 dark:text-gray-100">
             Buscando comercios...
           </div>
         </div>
       )}
       {error && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 dark:bg-red-900/80 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-2 rounded-lg text-sm">
           {error}
         </div>
       )}

@@ -9,10 +9,25 @@ export const metadata: Metadata = {
   description: "Extract and explore business data from map polygons",
 };
 
+const themeScript = `
+  try {
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (saved === 'dark' || (!saved && prefersDark)) {
+      document.documentElement.classList.add('dark');
+    }
+  } catch {}
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body className={`${inter.className} h-full bg-gray-50`}>{children}</body>
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className={`${inter.className} h-full bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100`}>
+        {children}
+      </body>
     </html>
   );
 }

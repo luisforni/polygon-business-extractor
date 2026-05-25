@@ -8,3 +8,14 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* Dark map tiles via CSS invert */
+.dark .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(85%);
+}
+
+/* Keep markers readable in dark mode */
+.dark .leaflet-marker-icon,
+.dark .leaflet-marker-shadow {
+  filter: invert(100%) hue-rotate(180deg);
+}

@@ -42,7 +42,7 @@ export default function SectorFilter({ selected, onChange }: SectorFilterProps) 
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium shadow-md hover:bg-gray-50"
+        className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-medium shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
       >
         <span>Rubros</span>
         {selected.length > 0 && (
@@ -54,9 +54,9 @@ export default function SectorFilter({ selected, onChange }: SectorFilterProps) 
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-[1001]">
-          <div className="p-2 border-b flex justify-between items-center">
-            <span className="text-xs text-gray-500 font-medium">Filtrar por rubro</span>
+        <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl overflow-hidden z-[1001]">
+          <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Filtrar por rubro</span>
             {selected.length > 0 && (
               <button onClick={() => onChange([])} className="text-xs text-red-500 hover:underline">
                 Limpiar
@@ -69,18 +69,18 @@ export default function SectorFilter({ selected, onChange }: SectorFilterProps) 
                 <button
                   onClick={() => toggle(sector)}
                   className={clsx(
-                    "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2",
-                    selected.includes(sector) && "bg-primary-50 text-primary-700"
+                    "w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors",
+                    selected.includes(sector)
+                      ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
+                      : "hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                   )}
                 >
-                  <span
-                    className={clsx(
-                      "w-4 h-4 rounded border flex items-center justify-center text-xs",
-                      selected.includes(sector)
-                        ? "bg-primary-500 border-primary-500 text-white"
-                        : "border-gray-300"
-                    )}
-                  >
+                  <span className={clsx(
+                    "w-4 h-4 rounded border flex items-center justify-center text-xs shrink-0",
+                    selected.includes(sector)
+                      ? "bg-primary-500 border-primary-500 text-white"
+                      : "border-gray-300 dark:border-gray-500"
+                  )}>
                     {selected.includes(sector) && "✓"}
                   </span>
                   {SECTOR_LABELS[sector] ?? sector}
