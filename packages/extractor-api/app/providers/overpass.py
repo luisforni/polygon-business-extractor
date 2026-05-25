@@ -6,7 +6,12 @@ from .base import BaseProvider
 from ..schemas.business import Business, Coordinates
 from ..core.sectors import SECTOR_OSM_TAGS
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# overpass-api.de blocks Docker/cloud IPs with 406 — use mirrors instead
+OVERPASS_ENDPOINTS = [
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://overpass-api.de/api/interpreter",
+]
 
 
 def _osm_to_sector(tags: dict) -> str:
@@ -31,25 +36,29 @@ class OverpassProvider(BaseProvider):
         query = self._build_query(poly_str, sectors)
 
         import urllib.parse
-        import sys
-        print(f"[overpass] query:\n{query}", file=sys.stderr)
-
         encoded = urllib.parse.urlencode({"data": query}).encode("utf-8")
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "*/*",
+            "User-Agent": "polygon-business-extractor/0.1",
+        }
+
+        last_error: Exception = RuntimeError("No Overpass endpoint available")
         async with httpx.AsyncClient(timeout=90) as client:
-            resp = await client.post(
-                OVERPASS_URL,
-                content=encoded,
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Accept": "*/*",
-                    "User-Agent": "polygon-business-extractor/0.1",
-                },
-            )
-            if not resp.is_success:
-                raise RuntimeError(f"Overpass HTTP {resp.status_code}: {resp.text[:300]}")
-            data = resp.json()
-            if "error" in data or data.get("elements") is None:
-                raise RuntimeError(f"Overpass error: {data.get('error', 'unknown')}")
+            for endpoint in OVERPASS_ENDPOINTS:
+                try:
+                    resp = await client.post(endpoint, content=encoded, headers=headers)
+                    if resp.is_success:
+                        data = resp.json()
+                        if "error" not in data and data.get("elements") is not None:
+                            break  # success
+                        last_error = RuntimeError(f"Overpass error: {data.get('error', 'unknown')}")
+                    else:
+                        last_error = RuntimeError(f"Overpass {resp.status_code} from {endpoint}")
+                except Exception as e:
+                    last_error = e
+            else:
+                raise last_error
 
         geom = shape({"type": "Polygon", "coordinates": [polygon]})
         results: list[Business] = []
