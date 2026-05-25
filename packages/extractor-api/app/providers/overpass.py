@@ -27,15 +27,28 @@ class OverpassProvider(BaseProvider):
         return True
 
     async def search(self, polygon: list[list[float]], sectors: list[str]) -> list[Business]:
-        poly_str = " ".join(f"{lat} {lng}" for lng, lat in polygon)
+        poly_str = " ".join(f"{round(lat, 6)} {round(lng, 6)}" for lng, lat in polygon)
         query = self._build_query(poly_str, sectors)
 
+        import urllib.parse
+        import sys
+        print(f"[overpass] query:\n{query}", file=sys.stderr)
+
+        encoded = urllib.parse.urlencode({"data": query}).encode("utf-8")
         async with httpx.AsyncClient(timeout=90) as client:
-            resp = await client.post(OVERPASS_URL, data={"data": query})
-            resp.raise_for_status()
+            resp = await client.post(
+                OVERPASS_URL,
+                content=encoded,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Accept": "*/*",
+                    "User-Agent": "polygon-business-extractor/0.1",
+                },
+            )
+            if not resp.is_success:
+                raise RuntimeError(f"Overpass HTTP {resp.status_code}: {resp.text[:300]}")
             data = resp.json()
-            # Overpass returns HTTP 200 even on errors — check explicitly
-            if "error" in data or (data.get("elements") is None):
+            if "error" in data or data.get("elements") is None:
                 raise RuntimeError(f"Overpass error: {data.get('error', 'unknown')}")
 
         geom = shape({"type": "Polygon", "coordinates": [polygon]})
