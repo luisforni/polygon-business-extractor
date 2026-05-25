@@ -19,12 +19,18 @@ export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Refs so the map handler always reads the latest value without needing rebinding
+  const selectedSectorsRef = useRef<string[]>([]);
+  const onSearchResultRef = useRef(onSearchResult);
+
+  useEffect(() => { selectedSectorsRef.current = selectedSectors; }, [selectedSectors]);
+  useEffect(() => { onSearchResultRef.current = onSearchResult; }, [onSearchResult]);
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     let mounted = true;
 
-    // leaflet-draw patches window.L at module init time — set it before the dynamic import
     (window as unknown as { L: typeof L }).L = L;
 
     // @ts-expect-error — @types/leaflet-draw augments L but has no module export declaration
@@ -41,28 +47,25 @@ export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
 
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
-          if (!mapRef.current) return;
-          mapRef.current.setView([coords.latitude, coords.longitude], 14);
+          mapRef.current?.setView([coords.latitude, coords.longitude], 14);
         },
-        () => {
-          // permiso denegado o no disponible — queda la vista inicial
-        }
+        () => {}
       );
 
       const drawnItems = new L.FeatureGroup().addTo(map);
-
-      const drawControl = new L.Control.Draw({
-        draw: {
-          polygon: { allowIntersection: false, showArea: true },
-          rectangle: true,
-          circle: false,
-          polyline: false,
-          marker: false,
-          circlemarker: false,
-        },
-        edit: { featureGroup: drawnItems },
-      });
-      map.addControl(drawControl);
+      map.addControl(
+        new L.Control.Draw({
+          draw: {
+            polygon: { allowIntersection: false, showArea: true },
+            rectangle: true,
+            circle: false,
+            polyline: false,
+            marker: false,
+            circlemarker: false,
+          },
+          edit: { featureGroup: drawnItems },
+        })
+      );
 
       map.on(L.Draw.Event.CREATED, async (e: L.DrawEvents.Created) => {
         drawnItems.clearLayers();
@@ -75,8 +78,9 @@ export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
         setSearching(true);
         setError(null);
         try {
-          const result = await searchBusinesses(polygon, selectedSectors);
-          onSearchResult(polygon, result);
+          // Read from refs — always current, no stale closure
+          const result = await searchBusinesses(polygon, selectedSectorsRef.current);
+          onSearchResultRef.current(polygon, result);
         } catch {
           setError("Error al buscar comercios. Intentá de nuevo.");
         } finally {
@@ -91,31 +95,6 @@ export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
       mapRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Re-bind handler when sector selection changes (avoids stale closure on the map)
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    const handler = async (e: L.DrawEvents.Created) => {
-      const latlngs = (e.layer as L.Polygon).getLatLngs()[0] as L.LatLng[];
-      const polygon: number[][] = latlngs.map((p) => [p.lng, p.lat]);
-      polygon.push(polygon[0]);
-
-      setSearching(true);
-      setError(null);
-      try {
-        const result = await searchBusinesses(polygon, selectedSectors);
-        onSearchResult(polygon, result);
-      } catch {
-        setError("Error al buscar comercios. Intentá de nuevo.");
-      } finally {
-        setSearching(false);
-      }
-    };
-
-    mapRef.current.off(L.Draw.Event.CREATED);
-    mapRef.current.on(L.Draw.Event.CREATED, handler);
-  }, [selectedSectors, onSearchResult]);
 
   return (
     <div className="relative w-full h-full">
