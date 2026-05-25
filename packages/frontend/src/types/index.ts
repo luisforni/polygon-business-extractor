@@ -24,6 +24,7 @@ export interface SearchResult {
   total: number;
   providers_used: string[];
   sectors_found: string[];
+  provider_errors: Record<string, string>;
 }
 
 export interface SavedSearch {

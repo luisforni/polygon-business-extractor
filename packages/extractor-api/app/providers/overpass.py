@@ -30,10 +30,13 @@ class OverpassProvider(BaseProvider):
         poly_str = " ".join(f"{lat} {lng}" for lng, lat in polygon)
         query = self._build_query(poly_str, sectors)
 
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=90) as client:
             resp = await client.post(OVERPASS_URL, data={"data": query})
             resp.raise_for_status()
             data = resp.json()
+            # Overpass returns HTTP 200 even on errors — check explicitly
+            if "error" in data or (data.get("elements") is None):
+                raise RuntimeError(f"Overpass error: {data.get('error', 'unknown')}")
 
         geom = shape({"type": "Polygon", "coordinates": [polygon]})
         results: list[Business] = []
@@ -77,28 +80,32 @@ class OverpassProvider(BaseProvider):
             f'  {f}(poly:"{poly_str}");' for f in filters
         )
         return f"""
-[out:json][timeout:25];
+[out:json][timeout:60][maxsize:1073741824];
 (
 {unions}
 );
-out center;
+out center qt;
 """.strip()
 
     def _sector_filters(self, sectors: list[str]) -> list[str]:
+        # nwr = nodes + ways + relations (catches all OSM business types)
         if not sectors:
-            return ['node["name"]["amenity"]', 'node["name"]["shop"]', 'node["name"]["tourism"]',
-                    'way["name"]["amenity"]', 'way["name"]["shop"]']
+            return [
+                'nwr["name"]["amenity"]',
+                'nwr["name"]["shop"]',
+                'nwr["name"]["tourism"]',
+                'nwr["name"]["office"]',
+                'nwr["name"]["craft"]',
+            ]
         filters = []
         for sector in sectors:
             for key, values in SECTOR_OSM_TAGS.get(sector, {}).items():
                 if isinstance(values, list):
                     val_filter = "|".join(values)
-                    filters.append(f'node["{key}"~"{val_filter}"]["name"]')
-                    filters.append(f'way["{key}"~"{val_filter}"]["name"]')
+                    filters.append(f'nwr["{key}"~"{val_filter}"]["name"]')
                 elif values == "*":
-                    filters.append(f'node["{key}"]["name"]')
-                    filters.append(f'way["{key}"]["name"]')
-        return filters or ['node["name"]["amenity"]']
+                    filters.append(f'nwr["{key}"]["name"]')
+        return filters or ['nwr["name"]["amenity"]']
 
     def _build_address(self, tags: dict) -> str | None:
         parts = [

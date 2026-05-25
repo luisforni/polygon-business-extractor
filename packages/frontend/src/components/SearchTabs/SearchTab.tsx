@@ -69,7 +69,7 @@ export default function SearchTab() {
 
   if (!search?.result) return null;
 
-  const { businesses, total, providers_used } = search.result;
+  const { businesses, total, providers_used, provider_errors } = search.result;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -87,9 +87,15 @@ export default function SearchTab() {
           <BusinessCard key={biz.id} business={biz} />
         ))}
         {businesses.length === 0 && (
-          <p className="text-center text-gray-400 mt-8 text-sm">
-            No se encontraron comercios en esa zona.
-          </p>
+          <div className="mt-8 text-center space-y-3">
+            <p className="text-gray-400 text-sm">No se encontraron comercios en esa zona.</p>
+            {Object.entries(provider_errors ?? {}).map(([provider, err]) => (
+              <div key={provider} className="text-xs bg-red-50 border border-red-100 rounded p-3 text-left">
+                <span className="font-medium text-red-600">{provider}:</span>{" "}
+                <span className="text-red-500">{err}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

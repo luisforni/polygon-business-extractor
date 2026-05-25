@@ -23,3 +23,4 @@ class SearchResult(BaseModel):
     total: int
     providers_used: list[str]
     sectors_found: list[str]
+    provider_errors: dict[str, str] = {}

@@ -33,9 +33,13 @@ async def aggregate(
 
     all_businesses: list[Business] = []
     providers_used: list[str] = []
+    provider_errors: dict[str, str] = {}
 
-    for provider, result in zip(providers, results_per_provider):
+    for provider, result in zip(
+        [p for p in providers if p.is_available()], results_per_provider
+    ):
         if isinstance(result, Exception):
+            provider_errors[provider.name] = type(result).__name__ + ": " + str(result)
             continue
         all_businesses.extend(result)
         if result:
@@ -49,4 +53,5 @@ async def aggregate(
         total=len(deduped),
         providers_used=providers_used,
         sectors_found=sectors_found,
+        provider_errors=provider_errors,
     )
