@@ -24,9 +24,17 @@ services:
     ports:
       - "8300:8300"
     env_file:
-      - ./packages/extractor-api/.env
+      - path: ./packages/extractor-api/.env
+        required: false          # no falla si el archivo no existe
     environment:
+      # Defaults que funcionan sin ningún .env
+      ENABLED_PROVIDERS: ${ENABLED_PROVIDERS:-overpass}
       CORS_ORIGINS: http://localhost:3100
+      DATABASE_URL: sqlite:////app/data/searches.db
+      # Keys opcionales — definirlas en packages/extractor-api/.env para activar el provider
+      GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY:-}
+      FOURSQUARE_API_KEY: ${FOURSQUARE_API_KEY:-}
+      YELP_API_KEY: ${YELP_API_KEY:-}
     volumes:
       - ./packages/extractor-api/app:/app/app
       - searches_data:/app/data
