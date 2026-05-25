@@ -22,63 +22,75 @@ export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = L.map(containerRef.current).setView([-34.6037, -58.3816], 13);
-    mapRef.current = map;
+    let mounted = true;
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap contributors",
-      maxZoom: 19,
-    }).addTo(map);
+    // leaflet-draw patches window.L at module init time — set it before the dynamic import
+    (window as unknown as { L: typeof L }).L = L;
 
-    const drawnItems = new L.FeatureGroup().addTo(map);
+    // @ts-expect-error — @types/leaflet-draw augments L but has no module export declaration
+    import("leaflet-draw").then(() => {
+      if (!mounted || !containerRef.current || mapRef.current) return;
 
-    // @ts-expect-error leaflet-draw types
-    const drawControl = new L.Control.Draw({
-      draw: {
-        polygon: { allowIntersection: false, showArea: true },
-        rectangle: true,
-        circle: false,
-        polyline: false,
-        marker: false,
-        circlemarker: false,
-      },
-      edit: { featureGroup: drawnItems },
-    });
-    map.addControl(drawControl);
+      const map = L.map(containerRef.current).setView([-34.6037, -58.3816], 13);
+      mapRef.current = map;
 
-    map.on(L.Draw.Event.CREATED, async (e: L.DrawEvents.Created) => {
-      drawnItems.clearLayers();
-      drawnItems.addLayer(e.layer);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
+        maxZoom: 19,
+      }).addTo(map);
 
-      const latlngs = (e.layer as L.Polygon).getLatLngs()[0] as L.LatLng[];
-      const polygon: number[][] = latlngs.map((p) => [p.lng, p.lat]);
-      polygon.push(polygon[0]); // close ring
+      const drawnItems = new L.FeatureGroup().addTo(map);
 
-      setSearching(true);
-      setError(null);
-      try {
-        const result = await searchBusinesses(polygon, selectedSectors);
-        onSearchResult(polygon, result);
-      } catch {
-        setError("Error al buscar comercios. Intentá de nuevo.");
-      } finally {
-        setSearching(false);
-      }
+      const drawControl = new L.Control.Draw({
+        draw: {
+          polygon: { allowIntersection: false, showArea: true },
+          rectangle: true,
+          circle: false,
+          polyline: false,
+          marker: false,
+          circlemarker: false,
+        },
+        edit: { featureGroup: drawnItems },
+      });
+      map.addControl(drawControl);
+
+      map.on(L.Draw.Event.CREATED, async (e: L.DrawEvents.Created) => {
+        drawnItems.clearLayers();
+        drawnItems.addLayer(e.layer);
+
+        const latlngs = (e.layer as L.Polygon).getLatLngs()[0] as L.LatLng[];
+        const polygon: number[][] = latlngs.map((p) => [p.lng, p.lat]);
+        polygon.push(polygon[0]);
+
+        setSearching(true);
+        setError(null);
+        try {
+          const result = await searchBusinesses(polygon, selectedSectors);
+          onSearchResult(polygon, result);
+        } catch {
+          setError("Error al buscar comercios. Intentá de nuevo.");
+        } finally {
+          setSearching(false);
+        }
+      });
     });
 
     return () => {
-      map.remove();
+      mounted = false;
+      mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update handler when sectors change without re-mounting
+  // Re-bind handler when sector selection changes (avoids stale closure on the map)
   useEffect(() => {
     if (!mapRef.current) return;
+
     const handler = async (e: L.DrawEvents.Created) => {
       const latlngs = (e.layer as L.Polygon).getLatLngs()[0] as L.LatLng[];
       const polygon: number[][] = latlngs.map((p) => [p.lng, p.lat]);
       polygon.push(polygon[0]);
+
       setSearching(true);
       setError(null);
       try {
@@ -90,6 +102,7 @@ export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
         setSearching(false);
       }
     };
+
     mapRef.current.off(L.Draw.Event.CREATED);
     mapRef.current.on(L.Draw.Event.CREATED, handler);
   }, [selectedSectors, onSearchResult]);
