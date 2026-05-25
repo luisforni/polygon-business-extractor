@@ -76,36 +76,34 @@ class OverpassProvider(BaseProvider):
 
     def _build_query(self, poly_str: str, sectors: list[str]) -> str:
         filters = self._sector_filters(sectors)
-        unions = "\n".join(
-            f'  {f}(poly:"{poly_str}");' for f in filters
-        )
-        return f"""
-[out:json][timeout:60][maxsize:1073741824];
-(
-{unions}
-);
-out center qt;
-""".strip()
+        unions = "\n".join(f'  {f}(poly:"{poly_str}");' for f in filters)
+        return f'[out:json][timeout:60];\n(\n{unions}\n);\nout center;'
 
     def _sector_filters(self, sectors: list[str]) -> list[str]:
-        # nwr = nodes + ways + relations (catches all OSM business types)
         if not sectors:
             return [
-                'nwr["name"]["amenity"]',
-                'nwr["name"]["shop"]',
-                'nwr["name"]["tourism"]',
-                'nwr["name"]["office"]',
-                'nwr["name"]["craft"]',
+                'node["name"]["amenity"]',
+                'way["name"]["amenity"]',
+                'node["name"]["shop"]',
+                'way["name"]["shop"]',
+                'node["name"]["tourism"]',
+                'way["name"]["tourism"]',
+                'node["name"]["office"]',
+                'way["name"]["office"]',
+                'node["name"]["craft"]',
+                'way["name"]["craft"]',
             ]
         filters = []
         for sector in sectors:
             for key, values in SECTOR_OSM_TAGS.get(sector, {}).items():
                 if isinstance(values, list):
                     val_filter = "|".join(values)
-                    filters.append(f'nwr["{key}"~"{val_filter}"]["name"]')
+                    filters.append(f'node["{key}"~"{val_filter}"]["name"]')
+                    filters.append(f'way["{key}"~"{val_filter}"]["name"]')
                 elif values == "*":
-                    filters.append(f'nwr["{key}"]["name"]')
-        return filters or ['nwr["name"]["amenity"]']
+                    filters.append(f'node["{key}"]["name"]')
+                    filters.append(f'way["{key}"]["name"]')
+        return filters or ['node["name"]["amenity"]', 'way["name"]["amenity"]']
 
     def _build_address(self, tags: dict) -> str | None:
         parts = [
