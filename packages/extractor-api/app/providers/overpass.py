@@ -6,12 +6,15 @@ from .base import BaseProvider
 from ..schemas.business import Business, Coordinates
 from ..core.sectors import SECTOR_OSM_TAGS
 
-# overpass-api.de blocks Docker/cloud IPs with 406 — use mirrors instead
+# overpass-api.de blocks Docker/cloud IPs with 406; rotate through mirrors.
+# Per-endpoint timeout of 30s so we fail fast and try the next one.
 OVERPASS_ENDPOINTS = [
+    "https://overpass.openstreetmap.fr/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "https://overpass-api.de/api/interpreter",
 ]
+_ENDPOINT_TIMEOUT = 30
 
 
 def _osm_to_sector(tags: dict) -> str:
@@ -44,7 +47,7 @@ class OverpassProvider(BaseProvider):
         }
 
         last_error: Exception = RuntimeError("No Overpass endpoint available")
-        async with httpx.AsyncClient(timeout=90) as client:
+        async with httpx.AsyncClient(timeout=_ENDPOINT_TIMEOUT) as client:
             for endpoint in OVERPASS_ENDPOINTS:
                 try:
                     resp = await client.post(endpoint, content=encoded, headers=headers)
