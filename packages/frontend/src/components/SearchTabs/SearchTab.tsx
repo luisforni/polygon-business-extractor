@@ -33,7 +33,7 @@ function BusinessCard({ business, selected, onSelect }: BusinessCardProps) {
       className={clsx(
         "border rounded-lg p-4 cursor-pointer transition-all",
         selected
-          ? "bg-primary-50 dark:bg-primary-900/20 border-primary-400 dark:border-primary-500 shadow-md"
+          ? "bg-white dark:bg-gray-800 border-primary-500 ring-2 ring-primary-500/30 shadow-md"
           : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900"
       )}
     >
