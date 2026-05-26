@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 import MapContainer from "@/components/Map/MapContainer";
 import SearchTabList from "@/components/SearchTabs/SearchTabList";
@@ -12,7 +12,7 @@ import { searchBusinesses } from "@/lib/api";
 import type { SearchResult } from "@/types";
 
 export default function Home() {
-  const { addSearch, searches } = useSearchesStore();
+  const { searches, activeTabId, addSearch } = useSearchesStore();
   const { dark, toggle } = useTheme();
 
   const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
@@ -20,15 +20,24 @@ export default function Home() {
   const [isDirty, setIsDirty] = useState(false);
   const [reSearching, setReSearching] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
 
-  // Track committed sectors (the ones used in the last search)
   const committedSectorsRef = useRef<string[]>([]);
+
+  // Reset selected marker when switching tabs
+  useEffect(() => {
+    setSelectedBusinessId(null);
+  }, [activeTabId]);
+
+  const activeSearch = searches.find((s) => s.id === activeTabId);
+  const activeBusinesses = activeSearch?.result?.businesses ?? [];
 
   const handleSearchResult = useCallback(
     async (polygon: number[][], result: SearchResult) => {
       setLastPolygon(polygon);
       committedSectorsRef.current = [...selectedSectors];
       setIsDirty(false);
+      setSelectedBusinessId(null);
       await addSearch(polygon, selectedSectors, result);
     },
     [addSearch, selectedSectors]
@@ -51,6 +60,7 @@ export default function Home() {
       const result = await searchBusinesses(lastPolygon, selectedSectors);
       committedSectorsRef.current = [...selectedSectors];
       setIsDirty(false);
+      setSelectedBusinessId(null);
       await addSearch(lastPolygon, selectedSectors, result);
     } finally {
       setReSearching(false);
@@ -110,6 +120,9 @@ export default function Home() {
             <MapContainer
               onSearchResult={handleSearchResult}
               selectedSectors={selectedSectors}
+              businesses={activeBusinesses}
+              selectedBusinessId={selectedBusinessId}
+              onBusinessSelect={setSelectedBusinessId}
             />
           </div>
 
@@ -118,7 +131,10 @@ export default function Home() {
             <div className="w-80 shrink-0 h-full flex flex-col border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
               <SearchTabList />
               <div className="flex-1 overflow-hidden">
-                <SearchTab />
+                <SearchTab
+                  selectedBusinessId={selectedBusinessId}
+                  onBusinessSelect={setSelectedBusinessId}
+                />
               </div>
             </div>
           )}
