@@ -72,7 +72,7 @@ export default function Home() {
       {/* Sidebar */}
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-40 w-64 shrink-0 transition-transform duration-200 lg:static lg:translate-x-0 lg:z-auto",
+          "fixed inset-y-0 left-0 z-40 w-80 shrink-0 transition-transform duration-200 lg:static lg:translate-x-0 lg:z-auto",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
       >
