@@ -8,15 +8,18 @@ interface ExportButtonProps {
   searchName: string;
 }
 
+const btnClass =
+  "flex items-center gap-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded px-2 py-1 transition-colors";
+
 export default function ExportButton({ businesses, searchName }: ExportButtonProps) {
+  const slug = searchName.replace(/\s+/g, "_");
+
   const exportJson = () => {
-    const blob = new Blob([JSON.stringify(businesses, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(businesses, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${searchName.replace(/\s+/g, "_")}.json`;
+    a.download = `${slug}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -24,39 +27,33 @@ export default function ExportButton({ businesses, searchName }: ExportButtonPro
   const exportCsv = () => {
     const headers = ["name", "sector", "address", "phone", "website", "rating", "provider"];
     const rows = businesses.map((b) =>
-      [b.name, b.sector, b.address ?? "", b.phone ?? "", b.website ?? "",
-       b.rating ?? "", b.provider].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")
+      [b.name, b.sector, b.address ?? "", b.phone ?? "", b.website ?? "", b.rating ?? "", b.provider]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(",")
     );
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${searchName.replace(/\s+/g, "_")}.csv`;
+    a.download = `${slug}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-400">Exportar:</span>
-      <button
-        onClick={exportJson}
-        className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 rounded px-2 py-1 transition-colors"
-      >
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-xs text-gray-400 dark:text-gray-500">Exportar:</span>
+      <button onClick={exportJson} className={btnClass}>
         <Download size={12} /> JSON
       </button>
-      <button
-        onClick={exportCsv}
-        className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 rounded px-2 py-1 transition-colors"
-      >
+      <button onClick={exportCsv} className={btnClass}>
         <Download size={12} /> CSV
       </button>
-      {/* AI Agent export button — wired when ai-agent package is ready */}
       <button
         disabled
         title="Disponible cuando el módulo IA esté listo"
-        className="flex items-center gap-1 text-xs bg-primary-50 text-primary-400 rounded px-2 py-1 cursor-not-allowed opacity-60"
+        className="flex items-center gap-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-400 dark:text-blue-400 rounded px-2 py-1 cursor-not-allowed opacity-60"
       >
         <Download size={12} /> Enviar a IA
       </button>
