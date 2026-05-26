@@ -6,16 +6,15 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import { searchBusinesses } from "@/lib/api";
 import type { SearchResult } from "@/types";
-import SectorFilter from "../Filters/SectorFilter";
 
 interface LeafletMapProps {
   onSearchResult: (polygon: number[][], result: SearchResult) => void;
+  selectedSectors: string[];
 }
 
-export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
+export default function LeafletMap({ onSearchResult, selectedSectors }: LeafletMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,9 +98,6 @@ export default function LeafletMap({ onSearchResult }: LeafletMapProps) {
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full z-0" />
-      <div className="absolute top-4 right-4 z-[1000]">
-        <SectorFilter selected={selectedSectors} onChange={setSelectedSectors} />
-      </div>
       {searching && (
         <div className="absolute inset-0 z-[999] flex items-center justify-center bg-black/20 dark:bg-black/40">
           <div className="bg-white dark:bg-gray-800 rounded-lg px-6 py-4 shadow-xl text-sm font-medium text-gray-900 dark:text-gray-100">
